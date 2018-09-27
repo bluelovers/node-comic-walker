@@ -25,6 +25,12 @@ function decodeData(item, fileSaveToPath) {
     });
 }
 exports.decodeData = decodeData;
+/**
+ * 直接輸入從 API 取得的 json 內容
+ *
+ * @param json
+ * @param dirSaveToPath 如果此參數存在時 會在取得資料的同時 順便將解密後的圖片輸出到此資料夾下
+ */
 function saveAllFromApiData(json, dirSaveToPath) {
     let options = dirSaveToPath && typeof dirSaveToPath === 'string' ? {
         output: dirSaveToPath,
@@ -109,6 +115,9 @@ function getData(item, fakeASync) {
     return null;
 }
 exports.getData = getData;
+/**
+ * 下載圖片並且轉換為 Buffer
+ */
 async function downloadEncodeImage(url) {
     return bluebird
         .resolve()
@@ -122,6 +131,9 @@ async function downloadEncodeImage(url) {
     });
 }
 exports.downloadEncodeImage = downloadEncodeImage;
+/**
+ * 產生解密用的 對應表
+ */
 function generateKeyMap(drm_hash) {
     let result = [];
     let code;
@@ -143,6 +155,12 @@ function generateKeyMap(drm_hash) {
     return result;
 }
 exports.generateKeyMap = generateKeyMap;
+/**
+ * 將 加密的 圖片 Buffer 解密
+ *
+ * @param image
+ * @param keymap
+ */
 function decodeBuffer(image, keymap) {
     return image.reduce(function (binary, data, i) {
         binary[i] = data ^ keymap[i % 8];
@@ -150,6 +168,11 @@ function decodeBuffer(image, keymap) {
     }, Buffer.alloc(image.length));
 }
 exports.decodeBuffer = decodeBuffer;
+/**
+ * 分析輸入網址 回傳 漫畫 ID
+ *
+ * @param input
+ */
 function getApiID(input) {
     let m;
     let id;
@@ -168,6 +191,11 @@ function getApiID(input) {
     return id;
 }
 exports.getApiID = getApiID;
+/**
+ * 將漫畫 ID 轉換為 API JSON 網址
+ *
+ * @param id
+ */
 function createApiUrl(id) {
     id = getApiID(id);
     if (!id) {
@@ -177,6 +205,12 @@ function createApiUrl(id) {
     return `https://ssl.seiga.nicovideo.jp/api/v1/comicwalker/episodes/${id}/frames`;
 }
 exports.createApiUrl = createApiUrl;
+/**
+ * 懶人包 下載 指定 ID 的漫畫內容
+ *
+ * @param input
+ * @param dirSaveToPath
+ */
 function downloadID(input, dirSaveToPath) {
     let id = getApiID(input);
     let url = createApiUrl(id);
