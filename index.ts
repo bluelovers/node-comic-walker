@@ -2,17 +2,17 @@ import fetch = require('cross-fetch');
 import fs = require('fs-extra');
 import bluebird = require('bluebird');
 import path = require('path');
+import { Console } from 'debug-color2';
 
 const FILE_EXT = '.jpg';
 
-export interface IData
+export const console = new Console();
+
+export interface IOptions
 {
-	"meta": {
-		"status": number;
-	};
-	"data": {
-		"result": IDataItem[];
-	};
+	cwd?: string,
+	output?: string,
+	log?: boolean,
 }
 
 export interface IDataItem
@@ -71,26 +71,46 @@ export function decodeData(item: IDataItem, fileSaveToPath?: string): bluebird<I
 		;
 }
 
-export function saveAllFromApiData(json: IData, dirSaveToPath?: string)
+export function saveAllFromApiData(json: IData, dirSaveToPath?: string | IOptions)
 {
+	let options: IOptions = dirSaveToPath && typeof dirSaveToPath === 'string' ? {
+		output: dirSaveToPath,
+	} : {
+		// @ts-ignore
+		...dirSaveToPath,
+	};
+	options.cwd = options.cwd || process.cwd();
+
 	return getDataFromApiData(json, true)
-		.map(async function (item, idx)
+		.tap(function ()
+		{
+			if (options.log)
+			{
+				console.info(`開始下載`);
+			}
+		})
+		.map(async function (item, idx, len)
 		{
 			let data = await decodeData(item);
 			item.buffer = data.buffer;
 
 			let id = String(idx).padStart(5, '0');
 
-			if (dirSaveToPath)
+			if (options.output)
 			{
-
-
-				let file = path.join(dirSaveToPath, id + FILE_EXT);
+				let file = path.join(options.output, id + FILE_EXT);
 
 				await fs.outputFile(file, item.buffer);
-			}
 
-			//console.log(id);
+				if (options.log)
+				{
+					let i = String(idx)
+						.padStart(String(len).length, '0')
+					;
+
+					console.success(`[${i}/${len}]`, id);
+				}
+			}
 
 			return item;
 		})
@@ -250,6 +270,103 @@ export function decodeBuffer(image: Buffer, keymap: number[])
 
 		return binary;
 	}, Buffer.alloc(image.length));
+}
+
+export function getApiID(input: string)
+{
+	let m: RegExpExecArray;
+	let id: string;
+
+	if (m = /^(\w+_\w+\d+_\w+)$/.exec(input))
+	{
+		id = m[1];
+	}
+	else if (m = /ssl.seiga.nicovideo.jp\/api\/v1\/comicwalker\/episodes\/(\w+_\w+_\w+)/.exec(input))
+	{
+		id = m[1];
+	}
+	else if (m = /comic-walker\.com\/viewer\/\?(?:.+&)?cid=(\w+_\w+_\w+)/.exec(input))
+	{
+		id = m[1];
+	}
+	else if (m = /comic-walker\.com\/contents\/detail\/(\w+_\w+_\w+)/i.exec(input))
+	{
+		id = m[1];
+	}
+
+	return id;
+}
+
+export function createApiUrl(id: string)
+{
+	id = getApiID(id);
+
+	if (!id)
+	{
+		throw new TypeError(`not a valid id`)
+	}
+
+	//id = id.replace(/0(_\w+)$/, '1$1');
+
+	return `https://ssl.seiga.nicovideo.jp/api/v1/comicwalker/episodes/${id}/frames`;
+}
+
+export function downloadID(input: string, dirSaveToPath?: string | IOptions)
+{
+	let id = getApiID(input);
+	let url = createApiUrl(id);
+
+	//console.dir(url);
+
+	let options: IOptions = dirSaveToPath && typeof dirSaveToPath === 'string' ? {
+		output: dirSaveToPath,
+	} : {
+		// @ts-ignore
+		...dirSaveToPath,
+	};
+
+	options.cwd = options.cwd || process.cwd();
+
+	return bluebird
+		.resolve()
+		.then(async function ()
+		{
+			let res = await fetch.fetch(url, {
+				credentials: 'include',
+			})
+				.catch(function ()
+				{
+					id = id.replace(/0(_\w+)$/, '1$1');
+					url = createApiUrl(id);
+
+					return fetch.fetch(url, {
+						credentials: 'include',
+					})
+				})
+			;
+
+			return res.json();
+		})
+		.then(function (json)
+		{
+			if (!options.output)
+			{
+				options.output = path.join(options.cwd, id);
+			}
+
+			return saveAllFromApiData(json, options)
+		})
+		;
+}
+
+export interface IData
+{
+	"meta": {
+		"status": number;
+	};
+	"data": {
+		"result": IDataItem[];
+	};
 }
 
 import self = require("./index");

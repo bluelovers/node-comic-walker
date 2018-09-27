@@ -4,7 +4,9 @@ const fetch = require("cross-fetch");
 const fs = require("fs-extra");
 const bluebird = require("bluebird");
 const path = require("path");
+const debug_color2_1 = require("debug-color2");
 const FILE_EXT = '.jpg';
+exports.console = new debug_color2_1.Console();
 function decodeData(item, fileSaveToPath) {
     return getData(item, true)
         .then(async function (data) {
@@ -24,16 +26,29 @@ function decodeData(item, fileSaveToPath) {
 }
 exports.decodeData = decodeData;
 function saveAllFromApiData(json, dirSaveToPath) {
+    let options = dirSaveToPath && typeof dirSaveToPath === 'string' ? {
+        output: dirSaveToPath,
+    } : Object.assign({}, dirSaveToPath);
+    options.cwd = options.cwd || process.cwd();
     return getDataFromApiData(json, true)
-        .map(async function (item, idx) {
+        .tap(function () {
+        if (options.log) {
+            exports.console.info(`開始下載`);
+        }
+    })
+        .map(async function (item, idx, len) {
         let data = await decodeData(item);
         item.buffer = data.buffer;
         let id = String(idx).padStart(5, '0');
-        if (dirSaveToPath) {
-            let file = path.join(dirSaveToPath, id + FILE_EXT);
+        if (options.output) {
+            let file = path.join(options.output, id + FILE_EXT);
             await fs.outputFile(file, item.buffer);
+            if (options.log) {
+                let i = String(idx)
+                    .padStart(String(len).length, '0');
+                exports.console.success(`[${i}/${len}]`, id);
+            }
         }
-        //console.log(id);
         return item;
     });
 }
@@ -135,5 +150,63 @@ function decodeBuffer(image, keymap) {
     }, Buffer.alloc(image.length));
 }
 exports.decodeBuffer = decodeBuffer;
+function getApiID(input) {
+    let m;
+    let id;
+    if (m = /^(\w+_\w+\d+_\w+)$/.exec(input)) {
+        id = m[1];
+    }
+    else if (m = /ssl.seiga.nicovideo.jp\/api\/v1\/comicwalker\/episodes\/(\w+_\w+_\w+)/.exec(input)) {
+        id = m[1];
+    }
+    else if (m = /comic-walker\.com\/viewer\/\?(?:.+&)?cid=(\w+_\w+_\w+)/.exec(input)) {
+        id = m[1];
+    }
+    else if (m = /comic-walker\.com\/contents\/detail\/(\w+_\w+_\w+)/i.exec(input)) {
+        id = m[1];
+    }
+    return id;
+}
+exports.getApiID = getApiID;
+function createApiUrl(id) {
+    id = getApiID(id);
+    if (!id) {
+        throw new TypeError(`not a valid id`);
+    }
+    //id = id.replace(/0(_\w+)$/, '1$1');
+    return `https://ssl.seiga.nicovideo.jp/api/v1/comicwalker/episodes/${id}/frames`;
+}
+exports.createApiUrl = createApiUrl;
+function downloadID(input, dirSaveToPath) {
+    let id = getApiID(input);
+    let url = createApiUrl(id);
+    //console.dir(url);
+    let options = dirSaveToPath && typeof dirSaveToPath === 'string' ? {
+        output: dirSaveToPath,
+    } : Object.assign({}, dirSaveToPath);
+    options.cwd = options.cwd || process.cwd();
+    return bluebird
+        .resolve()
+        .then(async function () {
+        let res = await fetch.fetch(url, {
+            credentials: 'include',
+        })
+            .catch(function () {
+            id = id.replace(/0(_\w+)$/, '1$1');
+            url = createApiUrl(id);
+            return fetch.fetch(url, {
+                credentials: 'include',
+            });
+        });
+        return res.json();
+    })
+        .then(function (json) {
+        if (!options.output) {
+            options.output = path.join(options.cwd, id);
+        }
+        return saveAllFromApiData(json, options);
+    });
+}
+exports.downloadID = downloadID;
 const self = require("./index");
 exports.default = self;

@@ -72,3 +72,4 @@ __tests__/*.d.ts
 *.test.ts
 *.test.js
 *.test.js.map
+*.jpg

@@ -4,4 +4,5 @@
 /test/
 ### git_ts_bin template
 bin/*.d.ts
+*.jpg
 

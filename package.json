@@ -1,18 +1,47 @@
 {
-  "name": "comic-walker-decode",
+  "name": "comic-walker",
   "version": "1.0.0",
-  "description": "decode comic-walker",
+  "description": "comic-walker decode / download",
+  "keywords": [
+    "comic",
+    "comic-walker",
+    "crawler",
+    "download",
+    "fetch",
+    "image",
+    "save"
+  ],
+  "homepage": "https://github.com/bluelovers/node-comic-walker#readme",
+  "bugs": {
+    "url": "https://github.com/bluelovers/node-comic-walker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluelovers/node-comic-walker.git"
+  },
+  "license": "ISC",
+  "author": "",
   "main": "index.js",
+  "bin": {
+    "comic-walker": "bin/comic-walker-download.js"
+  },
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@types/bluebird": "^3.5.24",
-    "@types/fs-extra": "^5.0.4",
     "bluebird": "^3.5.2",
     "cross-fetch": "^2.2.2",
-    "fs-extra": "^7.0.0"
+    "debug-color2": "^1.0.6",
+    "fs-extra": "^7.0.0",
+    "update-notifier": "^2.5.0",
+    "yargs": "^12.0.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^5.0.4",
+    "@types/yargs": "^12.0.0"
   }
 }
