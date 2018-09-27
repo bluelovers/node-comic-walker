@@ -1,0 +1,18 @@
+{
+  "name": "comic-walker-decode",
+  "version": "1.0.0",
+  "description": "decode comic-walker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/bluebird": "^3.5.24",
+    "@types/fs-extra": "^5.0.4",
+    "bluebird": "^3.5.2",
+    "cross-fetch": "^2.2.2",
+    "fs-extra": "^7.0.0"
+  }
+}

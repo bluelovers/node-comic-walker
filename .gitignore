@@ -1,0 +1,7 @@
+/node_modules
+.readme
+/test.js
+/test/
+### git_ts_bin template
+bin/*.d.ts
+
